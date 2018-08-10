@@ -1,0 +1,58 @@
+---
+title: KNN
+
+purpose: 
+  classification: new data points get classified in a particular class
+  regression: new data gets labeled based on average value of KNN
+  
+lazy learning:
+  poor performance from training set, better preformance of testing set
+  
+supervised learning:
+  requires prelabeling of data
+  
+requirements:
+  Normalize data such that data is in range of [0,1]
+  K = round(sqrt(nrow(data)))
+  library(class)
+---
+
+```{r}
+data <- read.table("C:/Users/nipun/Downloads/wdbc.txt", sep = ",")
+str(data)
+```
+
+```{r}
+data <- data[ ,-1]
+```
+
+
+```{r}
+normalization <- function(x){
+  ((x - min(x)) /(max(x) - min(x))) 
+}
+
+data_norm <- as.data.frame(lapply(data[,-1], normalization))
+summary(data_norm)
+```
+
+
+```{r}
+training <- data_norm[1:450, ]
+testing <- data_norm[451:569, ]
+```
+
+
+```{r}
+library(class)
+predict <- knn(training,
+               testing,
+               data[1:450, 1],
+               k = 15)
+```
+
+
+```{r}
+table(predict, data[451:569, 1])
+```
+
