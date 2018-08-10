@@ -81,17 +81,6 @@ model_sets %>%
     facet_wrap(~continent)
 ```
 
-```{r eval=FALSE, echo=FALSE}
-model_sets %>% 
-  filter(continent == "Asia",
-         data$year == 1977) %>% 
-  arrange(~augment, desc(augment))
-
-
-model_sets %>% 
-  names()
-```
-
 
 ```{r Model Digging, echo=FALSE, eval=FALSE}
 # back to oringinal gapminder dataset
