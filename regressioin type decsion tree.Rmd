@@ -1,0 +1,161 @@
+---
+title: "Regression type Decision Tree Example"
+author: "Nipunjeet Gujral"
+output: 
+  html_document:
+  theme: flatly
+  highlight: haddock
+---
+
+### General Process 
+  
+  >
+    * Test and transform data for property of Normality
+    * Validate data and optimze for complexity parameter
+    * Visulaize potential relations between input variables
+    * Grow Descision Tree
+    * Visulaize implications of decsion tree to ipnut variables
+    * Prune Decsion Tree for using derived complexity parameters
+    * Visualize differnce between Pruned and Unpruned Decsion trees
+
+
+
+
+| Libraries |         Purpose           |
+|-----------|---------------------------|
+| tidyverse | Data manipulation         |
+| plotly    | Graphical visualization   |
+| knitr     | Datatable visulaization   |
+| ISLR      | Example data              |
+| tree      | Descision Tree Production |      
+| rpart     | Recursive Partitioning    |
+| caret     | Data Validation           |
+
+
+```{r Libraries, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(plotly)
+library(ISLR)
+library(knitr)
+library(tree)
+library(rpart)
+library(caret)
+```
+
+
+#### Testing Data for normality
+```{r Examine Data, message=FALSE, warning=FALSE}
+ISLR::Hitters$Salary %>% shapiro.test()
+
+plotly::plot_ly(data = ISLR::Hitters,
+                x = ~Salary,
+                type = "histogram")
+```
+
+
+#### Testing log-transformed Data for normality
+```{r message=FALSE, warning=FALSE}
+data <- ISLR::Hitters %>% 
+  dplyr::select(Hits, Years, Salary) %>%
+  tidyr::drop_na() %>% 
+  dplyr::mutate(Log_Salary = log(Salary))
+
+data$Log_Salary %>% shapiro.test()
+
+plotly::plot_ly(data = data,
+                x = ~Log_Salary,
+                type = "histogram")
+```
+
+
+#### Validating the dataset
+```{r}
+train_control <- caret::trainControl(method = "repeatedcv", number = 10, repeats = 3)
+
+
+model = caret::train(Log_Salary ~ Years + Hits,
+                     data = data, 
+                     trControl = train_control, method = "rpart")
+print(model)
+```
+
+
+#### Visualize Data 
+```{r message=FALSE, warning=FALSE}
+knitr::kable(data[1:10, ], caption = "Data Sample", float.environmnet = 'Sidewaystable')
+
+```
+
+
+#### Graphing relationship between `Years` and `Hits`
+```{r Year vs. Hits, message=FALSE, warning=FALSE}
+plot1 <- plotly::plot_ly(data = data,
+                x = ~Years, y = ~Hits,
+                alpha = 0.6,
+                marker = list(size = 10,
+                              line = list(color = "black", width = 0.5)),
+                text = ~paste("Salary/1000: $", Salary, sep = ""), 
+                type = "scatter") %>% 
+  plotly::layout(title = "Years vs. Hits",
+                 xaxis = list(zeroline = FALSE),
+                 yaxis = list(zeroline = FALSE)) 
+plot1
+```
+
+
+#### Building a Decsion Tree
+```{r Build a tree, message=FALSE, warning=FALSE}
+# using the tree package ####
+  #Tree <- tree::tree(data = data,
+  #                   formula = Log_Salary ~ Hits + Years,
+  #                   split = "deviance",
+  #                   method = "recursive.partition", 
+  #                   model = TRUE)
+  #summary(Tree)
+  #plot(Tree); text(Tree)
+
+  
+# using the rpart package ####
+  Tree <- rpart::rpart(data = data,
+                      formula = Log_Salary ~ Years + Hits,
+                      method = "anova",
+                      model = TRUE)
+  plot(Tree); text(Tree, all= TRUE, cex = 0.7)  
+  summary(Tree)
+  
+```
+
+
+#### Apply Tree to Data
+```{r message=FALSE, warning=FALSE}
+plot2 <- plotly::plot_ly(data = data,
+                x = ~Years, y = ~Hits,
+                alpha = 0.6,
+                marker = list(size = 10,
+                              line = list(color = "black", width = 0.5)),
+                mode = "markers",
+                text = ~paste("Salary/1000: $", Salary, sep = ""), 
+                type = "scatter",
+                name = "Salary") %>% 
+  plotly::layout(title = "Years vs. Hits",
+                 xaxis = list(zeroline = FALSE),
+                 yaxis = list(zeroline = FALSE)) 
+```
+
+
+```{r message=FALSE, warning=FALSE}
+plotly::subplot(plot1, plot2, shareX = TRUE, shareY = FALSE) %>% 
+  plotly::layout(width = 1200, height = 700)
+```
+
+
+#### Pruning 
+```{r cross validation Pruning, message=FALSE, warning=FALSE}
+rpart::printcp(Tree)
+
+Pruned_Tree <- rpart::prune(Tree, cp = 0.04446021)
+plot(Pruned_Tree); text(Pruned_Tree, all = TRUE, cex = 0.7)
+summary(Pruned_Tree)
+```
+
+
